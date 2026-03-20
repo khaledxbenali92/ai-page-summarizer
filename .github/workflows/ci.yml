@@ -1,0 +1,50 @@
+name: 🤖 AI Page Summarizer CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: "20"
+
+    - name: Run tests
+      run: node tests/test.js
+
+    - name: Validate manifest
+      run: |
+        node -e "
+          const fs = require('fs');
+          const manifest = JSON.parse(fs.readFileSync('manifest.json', 'utf8'));
+          console.log('Manifest version:', manifest.manifest_version);
+          console.log('Extension name:', manifest.name);
+          console.log('Version:', manifest.version);
+          if (manifest.manifest_version !== 3) throw new Error('Must be Manifest V3');
+          if (!manifest.action) throw new Error('Missing action');
+          if (!manifest.background) throw new Error('Missing background');
+          console.log('✅ Manifest is valid!');
+        "
+
+    - name: Check required files
+      run: |
+        for f in manifest.json popup.html options.html \
+          src/background/background.js \
+          src/content/content.js \
+          src/utils/ai.js \
+          src/utils/storage.js; do
+          if [ ! -f "$f" ]; then
+            echo "❌ Missing: $f"
+            exit 1
+          else
+            echo "✅ Found: $f"
+          fi
+        done

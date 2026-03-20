@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>AI Summarizer — Settings</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: #0f0f1a; color: #e0e0e0;
+    min-height: 100vh; padding: 32px 20px;
+  }
+  .container { max-width: 560px; margin: 0 auto; }
+  .header { margin-bottom: 32px; }
+  .header h1 { font-size: 1.5rem; color: #fff; display: flex; align-items: center; gap: 10px; }
+  .header p { color: rgba(255,255,255,.4); margin-top: 6px; font-size: .9rem; }
+
+  .card {
+    background: #161b22; border: 1px solid rgba(255,255,255,.08);
+    border-radius: 12px; padding: 24px; margin-bottom: 16px;
+  }
+  .card-title {
+    font-size: .8rem; text-transform: uppercase; letter-spacing: .06em;
+    color: #5bc8cc; margin-bottom: 16px; font-weight: 600;
+  }
+  .field { margin-bottom: 16px; }
+  .field:last-child { margin-bottom: 0; }
+  label { display: block; font-size: .85rem; color: rgba(255,255,255,.6); margin-bottom: 6px; }
+  input, select {
+    width: 100%; padding: 10px 14px;
+    background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.1);
+    border-radius: 8px; color: #fff; font-size: .9rem; outline: none;
+    transition: border-color .15s;
+  }
+  input:focus, select:focus { border-color: #0d7377; }
+  input[type="password"] { letter-spacing: .1em; }
+
+  .toggle-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 0;
+  }
+  .toggle-label { font-size: .9rem; color: rgba(255,255,255,.7); }
+  .toggle-desc { font-size: .75rem; color: rgba(255,255,255,.3); margin-top: 2px; }
+
+  .toggle {
+    width: 44px; height: 24px; background: rgba(255,255,255,.15);
+    border-radius: 100px; border: none; cursor: pointer;
+    position: relative; transition: background .2s;
+  }
+  .toggle::after {
+    content: ''; position: absolute; width: 18px; height: 18px;
+    background: #fff; border-radius: 50%; top: 3px; left: 3px;
+    transition: transform .2s;
+  }
+  .toggle.on { background: #0d7377; }
+  .toggle.on::after { transform: translateX(20px); }
+
+  .save-btn {
+    width: 100%; padding: 14px; background: linear-gradient(135deg, #0d7377, #5bc8cc);
+    border: none; border-radius: 10px; color: #fff;
+    font-size: 1rem; font-weight: 700; cursor: pointer;
+    transition: opacity .15s; margin-top: 8px;
+  }
+  .save-btn:hover { opacity: .9; }
+
+  .status-msg {
+    text-align: center; padding: 8px; border-radius: 8px;
+    font-size: .85rem; margin-top: 12px; display: none;
+  }
+  .status-msg.success { background: rgba(68,187,68,.15); color: #44bb44; display: block; }
+  .status-msg.error { background: rgba(255,107,107,.15); color: #ff6b6b; display: block; }
+
+  .hint { font-size: .75rem; color: rgba(255,255,255,.25); margin-top: 6px; }
+  a { color: #5bc8cc; }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <h1>🤖 AI Page Summarizer <span style="font-size:.7rem;color:#5bc8cc;background:rgba(13,115,119,.2);padding:3px 8px;border-radius:4px">Settings</span></h1>
+    <p>Configure your AI provider and preferences</p>
+  </div>
+
+  <div class="card">
+    <div class="card-title">🔑 AI Provider</div>
+    <div class="field">
+      <label>Provider</label>
+      <select id="provider">
+        <option value="rule-based">Free Built-in (No API Key)</option>
+        <option value="openai">OpenAI GPT-4</option>
+      </select>
+    </div>
+    <div class="field" id="apiKeyField">
+      <label>OpenAI API Key</label>
+      <input type="password" id="apiKey" placeholder="sk-...">
+      <p class="hint">Get your key at <a href="https://platform.openai.com/api-keys" target="_blank">platform.openai.com/api-keys</a></p>
+    </div>
+    <div class="field" id="modelField">
+      <label>Model</label>
+      <select id="model">
+        <option value="gpt-4o-mini">GPT-4o Mini (Fast & Cheap)</option>
+        <option value="gpt-4o">GPT-4o (Best Quality)</option>
+        <option value="gpt-3.5-turbo">GPT-3.5 Turbo (Fastest)</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">⚙️ Preferences</div>
+    <div class="field">
+      <label>Default Summary Mode</label>
+      <select id="defaultMode">
+        <option value="full">Full Summary</option>
+        <option value="brief">Brief (2-3 sentences)</option>
+        <option value="bullets">Bullet Points</option>
+        <option value="eli5">ELI5 (Simple)</option>
+        <option value="academic">Academic</option>
+      </select>
+    </div>
+    <div class="toggle-row">
+      <div>
+        <div class="toggle-label">Save History</div>
+        <div class="toggle-desc">Remember recent summaries</div>
+      </div>
+      <button class="toggle on" id="historyToggle"></button>
+    </div>
+  </div>
+
+  <button class="save-btn" id="saveBtn">💾 Save Settings</button>
+  <div class="status-msg" id="statusMsg"></div>
+</div>
+
+<script>
+  const $ = id => document.getElementById(id);
+
+  // Load settings
+  chrome.storage.sync.get({
+    provider: 'rule-based', apiKey: '', model: 'gpt-4o-mini',
+    defaultMode: 'full', historyEnabled: true
+  }, settings => {
+    $('provider').value = settings.provider;
+    $('apiKey').value = settings.apiKey;
+    $('model').value = settings.model;
+    $('defaultMode').value = settings.defaultMode;
+    $('historyToggle').className = `toggle ${settings.historyEnabled ? 'on' : ''}`;
+    toggleApiFields(settings.provider);
+  });
+
+  $('provider').addEventListener('change', e => toggleApiFields(e.target.value));
+
+  function toggleApiFields(provider) {
+    const show = provider === 'openai';
+    $('apiKeyField').style.display = show ? 'block' : 'none';
+    $('modelField').style.display = show ? 'block' : 'none';
+  }
+
+  let historyEnabled = true;
+  $('historyToggle').addEventListener('click', function() {
+    historyEnabled = !historyEnabled;
+    this.className = `toggle ${historyEnabled ? 'on' : ''}`;
+  });
+
+  $('saveBtn').addEventListener('click', () => {
+    const settings = {
+      provider: $('provider').value,
+      apiKey: $('apiKey').value.trim(),
+      model: $('model').value,
+      defaultMode: $('defaultMode').value,
+      historyEnabled
+    };
+
+    chrome.storage.sync.set(settings, () => {
+      $('statusMsg').textContent = '✅ Settings saved!';
+      $('statusMsg').className = 'status-msg success';
+      setTimeout(() => $('statusMsg').className = 'status-msg', 3000);
+    });
+  });
+</script>
+</body>
+</html>

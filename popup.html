@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Page Summarizer</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    width: 360px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: #0f0f1a;
+    color: #e0e0e0;
+  }
+
+  .header {
+    background: linear-gradient(135deg, #16213e, #0d7377);
+    padding: 16px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 700;
+    font-size: 1rem;
+    color: #fff;
+  }
+
+  .logo-icon { font-size: 1.3rem; }
+
+  .settings-btn {
+    background: rgba(255,255,255,.1);
+    border: none;
+    color: #fff;
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background .15s;
+  }
+
+  .settings-btn:hover { background: rgba(255,255,255,.2); }
+
+  .body { padding: 16px; }
+
+  /* Mode Selector */
+  .mode-label {
+    font-size: .75rem;
+    color: rgba(255,255,255,.4);
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    margin-bottom: 8px;
+  }
+
+  .modes {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 6px;
+    margin-bottom: 14px;
+  }
+
+  .mode-btn {
+    background: rgba(255,255,255,.06);
+    border: 1px solid rgba(255,255,255,.1);
+    color: rgba(255,255,255,.6);
+    padding: 8px 4px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: .8rem;
+    text-align: center;
+    transition: all .15s;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+  }
+
+  .mode-btn .mode-icon { font-size: 1rem; }
+  .mode-btn .mode-name { font-size: .7rem; }
+
+  .mode-btn:hover,
+  .mode-btn.active {
+    background: rgba(13,115,119,.3);
+    border-color: rgba(13,115,119,.6);
+    color: #5bc8cc;
+  }
+
+  /* Summarize Button */
+  .summarize-btn {
+    width: 100%;
+    padding: 14px;
+    background: linear-gradient(135deg, #0d7377, #5bc8cc);
+    border: none;
+    border-radius: 10px;
+    color: #fff;
+    font-size: .95rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: opacity .15s, transform .1s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+
+  .summarize-btn:hover { opacity: .9; transform: translateY(-1px); }
+  .summarize-btn:active { transform: translateY(0); }
+  .summarize-btn:disabled { opacity: .5; cursor: not-allowed; }
+
+  /* Status */
+  .status {
+    text-align: center;
+    font-size: .8rem;
+    color: rgba(255,255,255,.4);
+    padding: 4px 0;
+    min-height: 20px;
+  }
+
+  .status.loading { color: #5bc8cc; }
+  .status.error { color: #ff6b6b; }
+  .status.success { color: #44bb44; }
+
+  /* Provider Badge */
+  .provider-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 0;
+    border-top: 1px solid rgba(255,255,255,.06);
+    margin-top: 8px;
+  }
+
+  .provider-badge {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: .75rem;
+    color: rgba(255,255,255,.4);
+  }
+
+  .provider-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #44bb44;
+  }
+
+  .provider-dot.offline { background: #ffc800; }
+
+  .shortcut {
+    font-size: .7rem;
+    color: rgba(255,255,255,.25);
+    background: rgba(255,255,255,.06);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: monospace;
+  }
+
+  /* History */
+  .history-section {
+    margin-top: 12px;
+    border-top: 1px solid rgba(255,255,255,.06);
+    padding-top: 12px;
+  }
+
+  .history-title {
+    font-size: .75rem;
+    color: rgba(255,255,255,.3);
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    margin-bottom: 8px;
+  }
+
+  .history-item {
+    padding: 8px 10px;
+    background: rgba(255,255,255,.04);
+    border-radius: 6px;
+    margin-bottom: 4px;
+    cursor: pointer;
+    transition: background .15s;
+  }
+
+  .history-item:hover { background: rgba(255,255,255,.08); }
+
+  .history-item-title {
+    font-size: .8rem;
+    color: rgba(255,255,255,.7);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .history-item-time {
+    font-size: .7rem;
+    color: rgba(255,255,255,.3);
+    margin-top: 2px;
+  }
+
+  .spinner {
+    width: 16px; height: 16px;
+    border: 2px solid rgba(255,255,255,.3);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spin .6s linear infinite;
+    display: none;
+  }
+
+  .summarize-btn.loading .spinner { display: block; }
+  .summarize-btn.loading .btn-text { display: none; }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="logo">
+    <span class="logo-icon">🤖</span>
+    <span>AI Summarizer</span>
+  </div>
+  <button class="settings-btn" id="settingsBtn" title="Settings">⚙️</button>
+</div>
+
+<div class="body">
+
+  <div class="mode-label">Summary Style</div>
+  <div class="modes">
+    <button class="mode-btn active" data-mode="full">
+      <span class="mode-icon">📄</span>
+      <span class="mode-name">Full</span>
+    </button>
+    <button class="mode-btn" data-mode="brief">
+      <span class="mode-icon">⚡</span>
+      <span class="mode-name">Brief</span>
+    </button>
+    <button class="mode-btn" data-mode="bullets">
+      <span class="mode-icon">📋</span>
+      <span class="mode-name">Bullets</span>
+    </button>
+    <button class="mode-btn" data-mode="eli5">
+      <span class="mode-icon">🧒</span>
+      <span class="mode-name">ELI5</span>
+    </button>
+    <button class="mode-btn" data-mode="academic">
+      <span class="mode-icon">🎓</span>
+      <span class="mode-name">Academic</span>
+    </button>
+    <button class="mode-btn" data-mode="selection">
+      <span class="mode-icon">✂️</span>
+      <span class="mode-name">Selection</span>
+    </button>
+  </div>
+
+  <button class="summarize-btn" id="summarizeBtn">
+    <div class="spinner"></div>
+    <span class="btn-text">🤖 Summarize This Page</span>
+  </button>
+
+  <div class="status" id="status"></div>
+
+  <div class="provider-row">
+    <div class="provider-badge">
+      <div class="provider-dot" id="providerDot"></div>
+      <span id="providerLabel">Free Mode</span>
+    </div>
+    <span class="shortcut">Ctrl+Shift+S</span>
+  </div>
+
+  <div class="history-section" id="historySection" style="display:none">
+    <div class="history-title">Recent Summaries</div>
+    <div id="historyList"></div>
+  </div>
+
+</div>
+
+<script src="src/popup/popup.js" type="module"></script>
+</body>
+</html>
