@@ -1,8 +1,3 @@
-/**
- * Tests for AI Page Summarizer
- * Run with: node tests/test.js
- */
-
 // ── Mock Chrome API ────────────────────────────────────────
 globalThis.chrome = {
   storage: {
