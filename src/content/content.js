@@ -1,7 +1,3 @@
-/**
- * Content Script — Page extraction & summary overlay
- */
-
 // ── Text Extractor ─────────────────────────────────────────
 function extractPageText() {
   const clone = document.cloneNode(true);
